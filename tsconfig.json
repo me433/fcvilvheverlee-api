@@ -1,0 +1,7 @@
+{
+    "compilerOptions": {
+      "moduleDetection": "force"
+    },
+    "types": [ "node" ],
+    "typeRoots": [ "../node_modules/@types" ]
+}
