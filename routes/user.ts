@@ -3,7 +3,8 @@ const router = express.Router();
 const userController = require('../controllers/userController.ts');
 
 
-router.post('/', userController.handleCreateUser)
+router.get('/', userController.getUsers)
+    .post('/', userController.handleCreateUser)
     .post('/admin', userController.handleMakeAdmin)
     .delete('/', userController.handleDeleteUser);
 

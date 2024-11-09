@@ -55,14 +55,10 @@ const handleLogin = async (req, res) => {
 
 const handleLogout = async (req, res) => {
     // On client, also delete the accessToken
-    console.log(req);
-
     const cookies = req.cookies;
     if (!cookies?.jwt) return res.sendStatus(204); //No content
     const refreshToken = cookies.jwt;
 
-    console.log(cookies)
-    console.log(refreshToken)
     // Connect to DB
     const db = new Database('./model/users.db', {readonly: false}, (err) => { //can be true
         if (err) return console.error(err.message);

@@ -4,7 +4,6 @@ require('dotenv').config();
 
 const handleRefreshToken = (req, res) => {
     const cookies = req.cookies;
-    console.log(req.cookies)
     if (!cookies?.jwt) return res.sendStatus(401);
     const refreshToken = cookies.jwt;
 
@@ -17,6 +16,10 @@ const handleRefreshToken = (req, res) => {
     const foundUser = db.prepare(`SELECT * FROM refresh_tokens WHERE token = ?`).get(refreshToken);
     if (!foundUser) return res.status(403).send({message: 'Forbidden'}); //Unauthorized
 
+    // Get roles
+    const userRoles = db.prepare(`SELECT isAdmin FROM users WHERE id = ?`).get(foundUser.user_id);
+    const roles = userRoles?.isAdmin? ["admin", "user"] : ["user"];
+
     // evaluate jwt 
     jwt.verify(
         refreshToken,
@@ -28,7 +31,7 @@ const handleRefreshToken = (req, res) => {
                 process.env.ACCESS_TOKEN_SECRET,
                 { expiresIn: '30s' }
             );
-            res.json({ accessToken })
+            res.json({ roles, accessToken })
         }
     );
 }

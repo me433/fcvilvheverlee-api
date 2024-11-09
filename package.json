@@ -15,6 +15,6 @@
   },
   "scripts": {
     "start": "node server.ts",
-    "dev": "nodemon server.ts"
+    "dev": "node --inspect --watch-path=./ ./server.ts"
   }
 }

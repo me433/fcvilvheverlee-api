@@ -2,6 +2,18 @@ const bcrypt = require('bcrypt');
 const Database = require('better-sqlite3')
 const { v4: uuidv4 } = require('uuid');
 
+
+const getUsers = async (req, res) => {
+    // Connect to DB
+    const db = new Database('./model/users.db', {readonly: false}, (err) => {
+        if (err) return console.error(err.message);
+        else console.log('Connected to SQLite db')
+    })
+
+    const userList = db.prepare(`SELECT id, firstName, lastName, username, active, isAdmin FROM users`).all();
+    res.send( userList )
+}
+
 const handleCreateUser = async (req, res) => {
     const { user, pwd, email, first_name, last_name } = req.body;
     if (!user || !pwd) return res.status(400).json({ 'message': 'Username and password are required.' });
@@ -95,4 +107,4 @@ const handleDeleteUser = async (req, res) => {
     }
 }
 
-module.exports = { handleCreateUser, handleDeleteUser, handleMakeAdmin };
+module.exports = { handleCreateUser, handleDeleteUser, handleMakeAdmin, getUsers };
