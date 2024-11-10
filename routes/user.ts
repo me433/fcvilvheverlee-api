@@ -5,7 +5,8 @@ const userController = require('../controllers/userController.ts');
 
 router.get('/', userController.getUsers)
     .post('/', userController.handleCreateUser)
-    .post('/admin', userController.handleMakeAdmin)
+    .post('/admin', userController.handleToggleAdmin)
+    .post('/activate', userController.handleToggleActive)
     .delete('/', userController.handleDeleteUser);
 
 module.exports = router;
