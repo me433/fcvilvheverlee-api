@@ -70,6 +70,14 @@ const handleToggleAdmin = async (req, res) => {
         return res.sendStatus(409); //Conflict 
     }
 
+    const enoughAdmins = db.prepare('SELECT SUM(isAdmin) as total FROM users').get();
+    console.log(enoughAdmins.total)
+
+    if (enoughAdmins.total < 2 && exists.isAdmin == 1) {
+        db.close();
+        return res.status(400).json({ 'message': 'At least one admin required.'})
+    }
+
     try {
         //encrypt the password
 
@@ -88,6 +96,7 @@ const handleToggleAdmin = async (req, res) => {
         res.status(500).json({ 'message': err.message });
     }
 }
+
 
 const handleDeleteUser = async (req, res) => {
     const { id } = req.body;
