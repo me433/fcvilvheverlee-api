@@ -4,6 +4,7 @@ node_modules/
 # dotenv environment variable files and keys
 .env
 GoogleCreds.json
+config/allowedOrigins.ts
 
 # database
 model/
