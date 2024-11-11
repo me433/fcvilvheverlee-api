@@ -8,6 +8,7 @@ const { verifyUser, verifyAdmin} = require('./middleware/verifyUser.ts');
 const app = express();
 const PORT = process.env.PORT || 3500;
 
+
 //check origin
 app.use(credentials);
 
@@ -31,7 +32,7 @@ app.use('/refresh', require('./routes/refresh.ts'))
 // app.use(verifyUser)
 
 // verify admin + protected routes
-// app.use(verifyAdmin)
+app.use(verifyAdmin)
 app.use('/users', require('./routes/user.ts'))
 
 app.listen(PORT,console.log(

@@ -5,13 +5,12 @@ const corsOptions = {
         if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
             callback(null, true)
         } else {
-            console.error('Blocked by CORS: ', origin);
             callback(new Error(`${origin} is not allowed by CORS`));
         }
     },
-    methods: 'GET,POST,PUT,DELETE,OPTIONS',
+    methods: 'GET, POST, PUT, DELETE, OPTIONS',
     allowedHeaders: 'Content-Type, Authorization',
-    optionsSuccessStatus: 200
+    credentials: true,
 }
 
 module.exports = corsOptions;

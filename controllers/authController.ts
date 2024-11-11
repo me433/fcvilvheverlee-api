@@ -7,7 +7,7 @@ require('dotenv').config();
 
 const handleLogin = async (req, res) => {
     const { user, pwd } = req.body;
-    if (!user || !pwd) return res.status(400).json({ 'message': 'Username and password are required.' });
+    if (!user || !pwd) return res.status(400).json({ 'message': `${req}: Username ${user} and password ${pwd} are required.` });
 
     const query = await db.collection('users').where("username", "==", user).get();
     const foundUser = query.docs[0]
