@@ -21,6 +21,8 @@ app.use(express.json());
 //middleware for cookies
 app.use(cookieParser());
 
+
+
 app.use('/login', require('./routes/auth.ts'))
 app.use('/logout', require('./routes/auth.ts'))
 app.use('/refresh', require('./routes/refresh.ts'))
@@ -29,7 +31,7 @@ app.use('/refresh', require('./routes/refresh.ts'))
 // app.use(verifyUser)
 
 // verify admin + protected routes
-app.use(verifyAdmin)
+// app.use(verifyAdmin)
 app.use('/users', require('./routes/user.ts'))
 
 app.listen(PORT,console.log(

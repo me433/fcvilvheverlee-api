@@ -1,49 +1,49 @@
 const bcrypt = require('bcrypt');
-const Database = require('better-sqlite3')
-const jwt = require('jsonwebtoken')
-require('dotenv').config()
+const Database = require('better-sqlite3');
+const jwt = require('jsonwebtoken');
+const { db } = require('../model/db.ts');
+require('dotenv').config();
 
 
 const handleLogin = async (req, res) => {
-    console.log(req.body)
     const { user, pwd } = req.body;
     if (!user || !pwd) return res.status(400).json({ 'message': 'Username and password are required.' });
-    // Connect to DB
-    const db = new Database('./model/users.db', {readonly: false}, (err) => { //can be true
-        if (err) return console.error(err.message);
-        else console.log('Connected to SQLite db')
-    })
 
-    const foundUser = db.prepare(`SELECT id, active, isAdmin, password FROM users WHERE username = ?`).get(user);
-    if (!foundUser) return res.status(401).send({message: 'Invalid credentials'}); //Unauthorized
-    else if (!foundUser.active) return res.status(403).send({message: 'Inactive user'}); //Forbidden (Inactive)
+    const query = await db.collection('users').where("username", "==", user).get();
+    const foundUser = query.docs[0]
+    if (foundUser.empty) return res.status(401).send({message: 'Invalid credentials'}); //Unauthorized
+    else if (!foundUser.data().active) return res.status(403).send({message: 'Inactive user'}); //Forbidden (Inactive)
 
     // evaluate password 
-    const match = await bcrypt.compare(pwd, foundUser.password);
+    const match = await bcrypt.compare(pwd, foundUser?.data()?.password);
     if (match) {
         // create JWTs
-        const roles = foundUser?.isAdmin? ["admin", "user"] : ["user"];
+        const roles = foundUser?.data()?.isAdmin? ["admin", "user"] : ["user"];
 
         const accessToken = jwt.sign(
             { 
-                "username": foundUser.username,
-                "admin": foundUser.isAdmin
+                "username": foundUser.data().username,
+                "admin": foundUser.data().isAdmin
             },
             process.env.ACCESS_TOKEN_SECRET,
             { expiresIn: '30s' }
         );
         const refreshToken = jwt.sign(
             { 
-                "username": foundUser.username,
-                "admin": foundUser.isAdmin
+                "username": foundUser.data().username,
+                "admin": foundUser.data().isAdmin
             },
             process.env.REFRESH_TOKEN_SECRET,
             { expiresIn: '1d' }
         );
-
         // saving refreshToken
-        const saveToken = db.prepare('INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, ?)');
-        saveToken.run(foundUser.id, refreshToken, Date.now()+1000*60*60*24)
+        const tokens = db.collection('refresh_tokens');
+        const saveToken = await tokens.add({
+            user_id: foundUser.id,
+            token: refreshToken,
+            expires_at: Date.now()+1000*60*60*24,
+            created_at: Date.now()
+        })
 
         res.cookie('jwt', refreshToken, {httpOnly: true, sameSite: 'None', secure: true, maxAge: 24*60*60*1000});
         res.json({ accessToken, roles })
@@ -52,6 +52,54 @@ const handleLogin = async (req, res) => {
         res.sendStatus(401);
     }
 }
+
+// const handleLogin = async (req, res) => {
+//     const { user, pwd } = req.body;
+//     if (!user || !pwd) return res.status(400).json({ 'message': 'Username and password are required.' });
+//     // Connect to DB
+//     const db = new Database('./model/users.db', {readonly: false}, (err) => { //can be true
+//         if (err) return console.error(err.message);
+//         else console.log('Connected to SQLite db')
+//     })
+
+//     const foundUser = db.prepare(`SELECT id, active, isAdmin, password FROM users WHERE username = ?`).get(user);
+//     if (!foundUser) return res.status(401).send({message: 'Invalid credentials'}); //Unauthorized
+//     else if (!foundUser.active) return res.status(403).send({message: 'Inactive user'}); //Forbidden (Inactive)
+
+//     // evaluate password 
+//     const match = await bcrypt.compare(pwd, foundUser.password);
+//     if (match) {
+//         // create JWTs
+//         const roles = foundUser?.isAdmin? ["admin", "user"] : ["user"];
+
+//         const accessToken = jwt.sign(
+//             { 
+//                 "username": foundUser.username,
+//                 "admin": foundUser.isAdmin
+//             },
+//             process.env.ACCESS_TOKEN_SECRET,
+//             { expiresIn: '30s' }
+//         );
+//         const refreshToken = jwt.sign(
+//             { 
+//                 "username": foundUser.username,
+//                 "admin": foundUser.isAdmin
+//             },
+//             process.env.REFRESH_TOKEN_SECRET,
+//             { expiresIn: '1d' }
+//         );
+
+//         // saving refreshToken
+//         const saveToken = db.prepare('INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, ?)');
+//         saveToken.run(foundUser.id, refreshToken, Date.now()+1000*60*60*24)
+
+//         res.cookie('jwt', refreshToken, {httpOnly: true, sameSite: 'None', secure: true, maxAge: 24*60*60*1000});
+//         res.json({ accessToken, roles })
+
+//     } else {
+//         res.sendStatus(401);
+//     }
+// }
 
 const handleLogout = async (req, res) => {
     // On client, also delete the accessToken
