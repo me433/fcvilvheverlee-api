@@ -5,9 +5,11 @@ const corsOptions = {
         if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
             callback(null, true)
         } else {
-            callback(new Error('Not allowed by CORS'));
+            callback(new Error(`${origin} is not allowed by CORS`));
         }
     },
+    methods: 'GET,POST,PUT,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Authorization',
     optionsSuccessStatus: 200
 }
 
