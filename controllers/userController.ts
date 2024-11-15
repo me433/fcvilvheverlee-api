@@ -35,7 +35,7 @@ const getUsers = async (req, res) => {
 
 const handleCreateUser = async (req, res) => {
     const { username: user, password: pwd, email, firstName: first_name, lastName: last_name } = req.body;
-    if (!user || !pwd) return res.status(400).json({ 'message': 'Username and password are required.' });
+    if (!user || !pwd) return res.status(400).json({ 'message': `${req}: Username and password are required to create a user.` });
 
     try {
         // check for duplicate usernames in the db

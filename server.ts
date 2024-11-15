@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3500;
 app.use(credentials);
 
 //CORS
-app.options('*', cors())
+app.options('*', cors(corsOptions))
 app.use(cors(corsOptions))
 
 //express middleware

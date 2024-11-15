@@ -6,16 +6,26 @@ require('dotenv').config();
 
 
 const handleLogin = async (req, res) => {
-    const { user, pwd } = req.body;
-    if (!user || !pwd) return res.status(400).json({ 'message': `${req}: Username ${user} and password ${pwd} are required.` });
+    const authHeader = req.headers['authorization'];
+    console.log(authHeader)
+    if (!authHeader) {
+        return res.status(401).send('Authorization header missing');
+    }
+    if (!authHeader.startsWith('Basic ')) {
+        return res.status(401).send('Invalid authentication format');
+    }
 
-    const query = await db.collection('users').where("username", "==", user).get();
+    const base64Credentials = authHeader.slice(6); // Remove "Basic " prefix
+    const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
+    const [username, password] = credentials.split(':');
+
+    const query = await db.collection('users').where("username", "==", username).get();
     const foundUser = query.docs[0]
     if (foundUser.empty) return res.status(401).send({message: 'Invalid credentials'}); //Unauthorized
     else if (!foundUser.data().active) return res.status(403).send({message: 'Inactive user'}); //Forbidden (Inactive)
 
     // evaluate password 
-    const match = await bcrypt.compare(pwd, foundUser?.data()?.password);
+    const match = await bcrypt.compare(password, foundUser?.data()?.password);
     if (match) {
         // create JWTs
         const roles = foundUser?.data()?.isAdmin? ["admin", "user"] : ["user"];
@@ -46,53 +56,6 @@ const handleLogin = async (req, res) => {
     }
 }
 
-// const handleLogin = async (req, res) => {
-//     const { user, pwd } = req.body;
-//     if (!user || !pwd) return res.status(400).json({ 'message': 'Username and password are required.' });
-//     // Connect to DB
-//     const db = new Database('./model/users.db', {readonly: false}, (err) => { //can be true
-//         if (err) return console.error(err.message);
-//         else console.log('Connected to SQLite db')
-//     })
-
-//     const foundUser = db.prepare(`SELECT id, active, isAdmin, password FROM users WHERE username = ?`).get(user);
-//     if (!foundUser) return res.status(401).send({message: 'Invalid credentials'}); //Unauthorized
-//     else if (!foundUser.active) return res.status(403).send({message: 'Inactive user'}); //Forbidden (Inactive)
-
-//     // evaluate password 
-//     const match = await bcrypt.compare(pwd, foundUser.password);
-//     if (match) {
-//         // create JWTs
-//         const roles = foundUser?.isAdmin? ["admin", "user"] : ["user"];
-
-//         const accessToken = jwt.sign(
-//             { 
-//                 "username": foundUser.username,
-//                 "admin": foundUser.isAdmin
-//             },
-//             process.env.ACCESS_TOKEN_SECRET,
-//             { expiresIn: '30s' }
-//         );
-//         const refreshToken = jwt.sign(
-//             { 
-//                 "username": foundUser.username,
-//                 "admin": foundUser.isAdmin
-//             },
-//             process.env.REFRESH_TOKEN_SECRET,
-//             { expiresIn: '1d' }
-//         );
-
-//         // saving refreshToken
-//         const saveToken = db.prepare('INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, ?)');
-//         saveToken.run(foundUser.id, refreshToken, Date.now()+1000*60*60*24)
-
-//         res.cookie('jwt', refreshToken, {httpOnly: true, sameSite: 'None', secure: true, maxAge: 24*60*60*1000});
-//         res.json({ accessToken, roles })
-
-//     } else {
-//         res.sendStatus(401);
-//     }
-// }
 
 const handleLogout = async (req, res) => {
     // On client, also delete the accessToken
