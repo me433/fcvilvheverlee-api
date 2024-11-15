@@ -7,22 +7,19 @@ const handleRefreshToken = async (req, res) => {
     if (!cookies?.jwt) return res.sendStatus(401);
     const refreshToken = cookies.jwt;
 
-    const refreshTokenCollection = db.collection('refresh_tokens');
-    const foundUser = await refreshTokenCollection.where('token', '==', refreshToken).get();
-    if (foundUser.empty) return res.status(403).send({message: 'Forbidden'}); //Unauthorized
-
-    // Get roles
-    const userRoles = await db.collection('users').doc(foundUser.docs[0].data().user_id).get();
-    const roles = userRoles?.data()?.isAdmin? ["admin", "user"] : ["user"];
-    
     // evaluate jwt 
     jwt.verify(
         refreshToken,
         process.env.REFRESH_TOKEN_SECRET,
-        (err, decoded) => {
-            if (err || userRoles.data().username !== decoded.username) return res.sendStatus(403);
+        async (err, decoded) =>  {
+            if (err) return res.sendStatus(403);
+            const userRoles = await db.collection('users').doc(decoded.sub).get();
+            const roles = userRoles?.data()?.isAdmin? ["admin", "user"] : ["user"];
             const accessToken = jwt.sign(
-                { "username": decoded.username },
+                { 
+                    "username": decoded.username,
+                    "admin": decoded.isAdmin
+                 },
                 process.env.ACCESS_TOKEN_SECRET,
                 { expiresIn: '30s' }
             );

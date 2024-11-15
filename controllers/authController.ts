@@ -31,19 +31,12 @@ const handleLogin = async (req, res) => {
         const refreshToken = jwt.sign(
             { 
                 "username": foundUser.data().username,
-                "admin": foundUser.data().isAdmin
+                "admin": foundUser.data().isAdmin,
+                "sub": foundUser.id,
             },
             process.env.REFRESH_TOKEN_SECRET,
             { expiresIn: '1d' }
         );
-        // saving refreshToken
-        const tokens = db.collection('refresh_tokens');
-        const saveToken = await tokens.add({
-            user_id: foundUser.id,
-            token: refreshToken,
-            expires_at: Date.now()+1000*60*60*24,
-            created_at: Date.now()
-        })
 
         res.cookie('jwt', refreshToken, {httpOnly: true, sameSite: 'None', secure: true, maxAge: 24*60*60*1000});
         res.json({ accessToken, roles })
