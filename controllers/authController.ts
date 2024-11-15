@@ -7,7 +7,6 @@ require('dotenv').config();
 
 const handleLogin = async (req, res) => {
     const authHeader = req.headers['authorization'];
-    console.log(authHeader)
     if (!authHeader) {
         return res.status(401).send('Authorization header missing');
     }
@@ -33,15 +32,16 @@ const handleLogin = async (req, res) => {
         const accessToken = jwt.sign(
             { 
                 "username": foundUser.data().username,
-                "admin": foundUser.data().isAdmin
+                "authorities": roles,
+                "sub": foundUser.id
             },
             process.env.ACCESS_TOKEN_SECRET,
-            { expiresIn: '30s' }
+            { expiresIn: '15m' }
         );
         const refreshToken = jwt.sign(
             { 
                 "username": foundUser.data().username,
-                "admin": foundUser.data().isAdmin,
+                "authorities": roles,
                 "sub": foundUser.id,
             },
             process.env.REFRESH_TOKEN_SECRET,
@@ -49,10 +49,10 @@ const handleLogin = async (req, res) => {
         );
 
         res.cookie('jwt', refreshToken, {httpOnly: true, sameSite: 'None', secure: true, maxAge: 24*60*60*1000});
-        res.json({ accessToken, roles })
+        return res.json({ accessToken, roles })
 
     } else {
-        res.sendStatus(401);
+        return res.sendStatus(401);
     }
 }
 
@@ -60,28 +60,10 @@ const handleLogin = async (req, res) => {
 const handleLogout = async (req, res) => {
     // On client, also delete the accessToken
     const cookies = req.cookies;
-    if (!cookies?.jwt) return res.sendStatus(204); //No content
-    const refreshToken = cookies.jwt;
-
-    // Connect to DB
-    const db = new Database('./model/users.db', {readonly: false}, (err) => { //can be true
-        if (err) return console.error(err.message);
-        else console.log('Connected to SQLite db')
-    })
-
-    // Is refreshToken in db?
-    const foundUser = db.prepare(`SELECT token FROM refresh_tokens WHERE token = ?`).get(refreshToken);
-    if (!foundUser) {
-        res.clearCookie('jwt', { httpOnly: true, sameSite: 'None', secure: true });
-        return res.sendStatus(204);
-    }
-    console.log(foundUser)
-    // Delete refreshToken in db
-    const deleteToken = db.prepare('DELETE FROM refresh_tokens WHERE token = ?');
-    deleteToken.run(foundUser.token)
+    if (!cookies?.jwt) return res.sendStatus(204); 
 
     res.clearCookie('jwt', { httpOnly: true, sameSite: 'None', secure: true });
-    res.sendStatus(204);
+    return res.sendStatus(204);
 }
 
 module.exports = { handleLogin, handleLogout };

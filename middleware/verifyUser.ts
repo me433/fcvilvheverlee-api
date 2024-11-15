@@ -1,68 +1,50 @@
 const { db } = require('../model/db.ts');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
 const verifyUser = async (req, res, next) => {
-    const cookies = req.cookies;
-    if (!cookies?.jwt) return res.sendStatus(401);
-    const refreshToken = cookies.jwt;
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) {
+        return res.status(401).json({ message: 'Authorization header missing' });
+    }
 
-    const refreshTokenCollection = db.collection('refresh_tokens');
-    const foundUser = await refreshTokenCollection.where('token', '==', refreshToken).get();
-    if (foundUser.empty) return res.status(403).send({message: 'Forbidden'}); //Unauthorized
+    const token = authHeader.split(' ')[1];  // The second part is the token
+    if (!token) {
+        return res.status(401).json({ message: 'Token missing' });
+    }
 
-    next();
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).json({ message: 'Invalid or expired token' });
+        }
+        if (decoded.authorities.includes('user')) next();
+    });
+    return res.status(403).send({message: 'Forbidden'}); //Unauthorized
 }
 
 const verifyAdmin = async (req, res, next) => {
-    const cookies = req.cookies;
-    if (!cookies?.jwt) return res.sendStatus(401);
-    const refreshToken = cookies.jwt;
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) {
+        return res.status(401).json({ message: 'Authorization header missing' });
+    }
 
-    const refreshTokenCollection = db.collection('refresh_tokens');
-    const foundUser = await refreshTokenCollection.where('token', '==', refreshToken).get();
-    if (foundUser.empty) return res.status(403).send({message: 'Forbidden'}); //Unauthorized
+    const token = authHeader.split(' ')[1];  // The second part is the token
+    if (!token) {
+        return res.status(401).json({ message: 'Token missing' });
+    }
 
-
-    const adminUser = await db.collection('users').doc(foundUser.docs[0].data().user_id);
-    if (!adminUser?.data()?.isAdmin) return res.status(403).send({message: 'Forbidden'}); //Unauthorized
-
-    next();
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).json({ message: 'Invalid or expired token' });
+        }
+        if (decoded.authorities.includes('admin')) {
+            next();
+        }
+        else {
+            return res.status(403).send({message: 'Forbidden'}); //Unauthorized
+        }
+    });
 }
 
-// const verifyUser = (req, res, next) => {
-//     const cookies = req.cookies;
-//     if (!cookies?.jwt) return res.sendStatus(401);
-//     const refreshToken = cookies.jwt;
-
-//     // Connect to DB
-//     const db = new Database('./model/users.db', {readonly: false}, (err) => {
-//         if (err) return console.error(err.message);
-//         else console.log('Connected to SQLite db')
-//     })
-
-//     const foundUser = db.prepare(`SELECT user_id FROM refresh_tokens WHERE token = ?`).get(refreshToken);
-//     if (!foundUser) return res.status(403).send({message: 'Forbidden'}); //Unauthorized
-
-//     next();
-// }
-
-// const verifyAdmin = (req, res, next) => {
-//     const cookies = req.cookies;
-//     if (!cookies?.jwt) return res.sendStatus(401);
-//     const refreshToken = cookies.jwt;
-
-//     // Connect to DB
-//     const db = new Database('./model/users.db', {readonly: false}, (err) => {
-//         if (err) return console.error(err.message);
-//         else console.log('Connected to SQLite db')
-//     })
-
-//     const foundUser = db.prepare(`SELECT user_id FROM refresh_tokens WHERE token = ?`).get(refreshToken);
-//     if (!foundUser) return res.status(403).send({message: 'Forbidden'}); //Unauthorized
-
-//     const adminUser = db.prepare(`SELECT isAdmin FROM users WHERE id = ?`).get(foundUser.user_id);
-//     if (!adminUser) return res.status(403).send({message: 'Forbidden'}); //Unauthorized
-
-//     next();
-// }
 
 module.exports = { verifyUser, verifyAdmin }
